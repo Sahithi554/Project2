@@ -1,9 +1,6 @@
 /**
-* @file Shape.cpp
+ * @file Shape.cpp
  * @author Sahithi Nalamalpu
- * @version 1.0
- *
- * Implements the Shape class that represents a drawable geometric component.
  */
 
 #include "pch.h"
@@ -11,132 +8,177 @@
 #include "Machine.h"
 #include "Consts.h"
 
+// Static Behavior
+class Shape::StaticBehavior : public PhysicsBehavior {
+public:
+    void Apply(cse335::PhysicsPolygon* polygon) override {
+        // Static is default
+    }
+    void HandleRotation(cse335::PhysicsPolygon* polygon, double rotation) override {
+        // Static objects don't rotate
+    }
+    void HandleSpeed(cse335::PhysicsPolygon* polygon, double speed) override {
+        // Static objects don't have speed
+    }
+};
+
+// Dynamic Behavior
+class Shape::DynamicBehavior : public PhysicsBehavior {
+public:
+    void Apply(cse335::PhysicsPolygon* polygon) override {
+        polygon->SetDynamic();
+    }
+    void HandleRotation(cse335::PhysicsPolygon* polygon, double rotation) override {
+        if (polygon && polygon->GetBody()) {
+            polygon->SetRotation(rotation);
+        }
+    }
+    void HandleSpeed(cse335::PhysicsPolygon* polygon, double speed) override {
+        if (polygon && polygon->GetBody()) {
+            polygon->SetAngularVelocity(speed);
+        }
+    }
+};
+
+// Kinematic Behavior
+class Shape::KinematicBehavior : public PhysicsBehavior {
+public:
+    void Apply(cse335::PhysicsPolygon* polygon) override {
+        polygon->SetKinematic();
+    }
+    void HandleRotation(cse335::PhysicsPolygon* polygon, double rotation) override {
+        if (polygon && polygon->GetBody()) {
+            polygon->SetRotation(rotation);
+        }
+    }
+    void HandleSpeed(cse335::PhysicsPolygon* polygon, double speed) override {
+        if (polygon && polygon->GetBody()) {
+            // For kinematic shapes, set angular velocity
+            // Speed is in turns per second, Box2D needs radians per second
+            // Clockwise is negative in Box2D
+            polygon->SetAngularVelocity(-speed * 2.0 * M_PI);
+        }
+    }
+};
+
 /**
  * Constructor
- * @param machine The machine this component belongs to
  */
 Shape::Shape(Machine* machine) : Component(machine)
 {
     mPolygon = std::make_shared<cse335::PhysicsPolygon>();
     mRotationSource = std::make_unique<RotationSource>();
+    mBehavior = std::make_unique<StaticBehavior>();
 }
-
 
 void Shape::Rectangle(double x, double y, double width, double height)
 {
-    mPolygon->Rectangle(x, y, width, height);
+    if (mPolygon) {
+        mPolygon->Rectangle(x, y, width, height);
+    }
 }
 
-
-void Shape::SetImage(const std::wstring& path)
+void Shape::Circle(double radius)
 {
-    mPolygon->SetImage(path);
+    if (mPolygon) {
+        mPolygon->Circle(radius);
+    }
 }
 
-
-void Shape::SetColor(wxColour color)
+void Shape::BottomCenteredRectangle(double width, double height)
 {
-    mPolygon->SetColor(color);
+    if (mPolygon) {
+        mPolygon->BottomCenteredRectangle(width, height);
+    }
 }
-
-
-void Shape::SetDynamic()
-{
-    mIsDynamic = true;
-    mIsKinematic = false;
-    mPolygon->SetDynamic();
-}
-
-
-void Shape::SetKinematic()
-{
-    mIsKinematic = true;
-    mIsDynamic = false;
-    mPolygon->SetKinematic();
-}
-
-
-void Shape::AddPoint(wxPoint2DDouble point)
-{
-    mPolygon->AddPoint(point.m_x, point.m_y);
-}
-
 
 void Shape::AddPoint(double x, double y)
 {
-    mPolygon->AddPoint(x, y);
+    if (mPolygon) {
+        mPolygon->AddPoint(x, y);
+    }
 }
 
-
-void Shape::SetInitialPosition(wxPoint2DDouble pos)
+void Shape::AddPoint(wxPoint2DDouble point)
 {
-    mPolygon->SetInitialPosition(pos.m_x, pos.m_y);
+    AddPoint(point.m_x, point.m_y);
 }
 
+void Shape::SetImage(const std::wstring& path)
+{
+    if (mPolygon) {
+        mPolygon->SetImage(path);
+    }
+}
+
+void Shape::SetColor(wxColour color)
+{
+    if (mPolygon) {
+        mPolygon->SetColor(color);
+    }
+}
+
+void Shape::SetDynamic()
+{
+    mBehavior = std::make_unique<DynamicBehavior>();
+    if (mPolygon) {
+        mBehavior->Apply(mPolygon.get());
+    }
+}
+
+void Shape::SetKinematic()
+{
+    mBehavior = std::make_unique<KinematicBehavior>();
+    if (mPolygon) {
+        mBehavior->Apply(mPolygon.get());
+    }
+}
 
 void Shape::SetInitialPosition(double x, double y)
 {
-    mPolygon->SetInitialPosition(x, y);
+    if (mPolygon) {
+        mPolygon->SetInitialPosition(x, y);
+    }
+}
+
+void Shape::SetInitialPosition(wxPoint2DDouble pos)
+{
+    SetInitialPosition(pos.m_x, pos.m_y);
 }
 
 void Shape::SetInitialRotation(double rotation)
 {
-    if (mPolygon)
-    {
+    if (mPolygon) {
         mPolygon->SetInitialRotation(rotation);
     }
 }
 
 void Shape::SetPhysics(double density, double friction, double restitution)
 {
-    if (mPolygon)
-    {
+    if (mPolygon) {
         mPolygon->SetPhysics(density, friction, restitution);
     }
 }
 
-void Shape::BottomCenteredRectangle(double width, double height)
-{
-    if (mPolygon)
-    {
-        mPolygon->BottomCenteredRectangle(width, height);
-    }
-}
-
-void Shape::Circle(double radius)
-{
-    mPolygon->Circle(radius);
-}
-
-
 void Shape::Draw(std::shared_ptr<wxGraphicsContext> graphics)
 {
-    if (mPolygon != nullptr)
-    {
+    if (mPolygon) {
         mPolygon->Draw(graphics);
     }
 }
 
-
-
 void Shape::SetRotation(double rotation)
 {
     mRotation = rotation;
-
-    if (mPolygon != nullptr && GetBody() != nullptr)
-    {
-        mPolygon->SetRotation(rotation);
+    if (mBehavior && mPolygon && GetBody()) {
+        mBehavior->HandleRotation(mPolygon.get(), rotation);
     }
 }
 
 void Shape::Rotate(double rotation, double speed)
 {
     mRotation = rotation;
-
-    // For shapes, use SetAngularVelocity with speed instead of SetRotation
-    // This allows the physics system to handle the rotation properly
-    if (mPolygon != nullptr && GetBody() != nullptr)
-    {
-        mPolygon->SetAngularVelocity(speed);
+    if (mBehavior && mPolygon && GetBody()) {
+        mBehavior->HandleSpeed(mPolygon.get(), speed);
     }
 }

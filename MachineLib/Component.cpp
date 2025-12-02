@@ -1,45 +1,39 @@
 /**
- * @file Component.cpp
- * @author sahithi
- * brief Implementation for base Component class.
+* @file Component.cpp
+ * @author Sahithi Nalamalpu
  */
 
 #include "pch.h"
 #include "Component.h"
 #include "Machine.h"
 
-
-
 /**
- * @brief Component constructor.
- * @param machine The machine this component belongs to.
- *
- * Initializes the component attached to the specified machine.
+ * Constructor
  */
 Component::Component(Machine* machine) : mMachine(machine)
 {
 }
 
 /**
- * @brief Default rotation setter.
- * @param rotation Rotation in turns (0-1).
- *
- * Default implementation does nothing. Components that need to respond
- * to rotation should override this method.
+ * Default rotation setter
  */
 void Component::SetRotation(double rotation)
 {
-
+    // Default implementation does nothing
 }
 
 /**
- * @brief Set the rotation source for this component.
- * @param source The rotation source.
- *
- * Stores the pointer to the rotation source; concrete components may
- * subscribe to the source or use its values in Update/Draw as needed.
+ * Set rotation source
  */
 void Component::SetSource(RotationSource* source)
 {
     mRotationSource = source;
+}
+
+/**
+ * Rotate with speed
+ */
+void Component::Rotate(double rotation, double speed)
+{
+    SetRotation(rotation);
 }

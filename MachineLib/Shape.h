@@ -1,10 +1,7 @@
 /**
  * @file Shape.h
  * @author Sahithi Nalamalpu
- * @version 1.0
- *
- * A shape component that can be static, dynamic, or kinematic.
- * Shapes can be assigned a color or an image and can receive rotation from rotation sources.
+ * @brief Shape component with strategy pattern for physics behaviors
  */
 
 #ifndef CANADIANEXPERIENCE_SHAPE_H
@@ -19,67 +16,75 @@
 class Machine;
 
 /**
- * Shape component representing a geometric object in a machine.
+ * @brief Shape component with behavior strategies
  */
 class Shape : public Component {
-
-
 private:
+    /**
+     * @brief Physics behavior interface
+     */
+    class PhysicsBehavior {
+    public:
+        virtual ~PhysicsBehavior() = default;
+        virtual void Apply(cse335::PhysicsPolygon* polygon) = 0;
+        virtual void HandleRotation(cse335::PhysicsPolygon* polygon, double rotation) = 0;
+        virtual void HandleSpeed(cse335::PhysicsPolygon* polygon, double speed) = 0;
+    };
 
-    std::shared_ptr<cse335::PhysicsPolygon> mPolygon; ///< The polygon representing this shape
-    std::unique_ptr<RotationSource> mRotationSource; ///< Rotation source for this shape
+    class StaticBehavior;
+    class DynamicBehavior;
+    class KinematicBehavior;
 
-    double mRotation = 0; ///< Current rotation in turns (0-1)
+    /// Shape's polygon representation
+    std::shared_ptr<cse335::PhysicsPolygon> mPolygon;
 
-    bool mIsDynamic = false; ///< True if the shape is dynamic
-    bool mIsKinematic = false; ///< True if the shape is kinematic
+    /// Rotation source for this shape
+    std::unique_ptr<RotationSource> mRotationSource;
+
+    /// Current physics behavior
+    std::unique_ptr<PhysicsBehavior> mBehavior;
+
+    /// Current rotation value
+    double mRotation = 0.0;
 
 public:
-    /**
-     * Constructor
-     * @param machine The machine this component belongs to
-     */
-    Shape(Machine* machine);
-
-    /// Destructor
+    explicit Shape(Machine* machine);
     virtual ~Shape() = default;
 
-    /// Copy constructor disabled
     Shape(const Shape &) = delete;
-
-    /// Assignment operator disabled
     void operator=(const Shape &) = delete;
 
+    // Shape creation methods
     void Rectangle(double x, double y, double width, double height);
+    void Circle(double radius);
+    void BottomCenteredRectangle(double width, double height);
+    void AddPoint(double x, double y);
+    void AddPoint(wxPoint2DDouble point);
 
+    // Appearance methods
     void SetImage(const std::wstring& path);
     void SetColor(wxColour color);
+
+    // Physics type methods
     void SetDynamic();
     void SetKinematic();
 
-
-    void AddPoint(wxPoint2DDouble point);
-    void AddPoint(double x, double y);
-
-    void SetInitialPosition(wxPoint2DDouble pos);
+    // Position and rotation
     void SetInitialPosition(double x, double y);
-
+    void SetInitialPosition(wxPoint2DDouble pos);
     void SetInitialRotation(double rotation);
-
     void SetPhysics(double density, double friction, double restitution);
 
-    void BottomCenteredRectangle(double width, double height);
-
-    void Circle(double radius);
+    // Component interface
     void Draw(std::shared_ptr<wxGraphicsContext> graphics) override;
 
+    // Accessors
+    std::shared_ptr<cse335::PhysicsPolygon> GetPolygon() const { return mPolygon; }
+    RotationSource* GetRotationSource() const { return mRotationSource.get(); }
+
+    // IRotationSink overrides
     void SetRotation(double rotation) override;
     void Rotate(double rotation, double speed) override;
-
-    /// Accessors
-    std::shared_ptr<cse335::PhysicsPolygon> GetPolygon() const { return mPolygon; }
-
-    RotationSource* GetRotationSource() const { return mRotationSource.get(); }
 };
 
 #endif // CANADIANEXPERIENCE_SHAPE_H
