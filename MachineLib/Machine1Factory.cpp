@@ -165,7 +165,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     auto elevator1EC = std::make_shared<Elevator>(machine.get());
     elevator1EC->SetSize(50, 15);
     elevator1EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator1EC->SetPosition(-450, -40);
+    elevator1EC->SetPosition(-420, -50);  //-420, 550
     elevator1EC->GetPolygon()->SetKinematic();
     machine->AddComponent(elevator1EC);
     if (world) {
@@ -173,6 +173,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
         elevator1EC->SetBody(elevator1EC->GetPolygon()->GetBody());
     }
 
+    /**
     auto elevator2EC = std::make_shared<Elevator>(machine.get());
     elevator2EC->SetSize(50, 15);
     elevator2EC->SetImage(mImagesDir + L"/beam2.png");
@@ -194,6 +195,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
         elevator3EC->GetPolygon()->InstallPhysics(world);
         elevator3EC->SetBody(elevator3EC->GetPolygon()->GetBody());
     }
+    **/
 
     // Wedge near elevator
     auto wedgeEC = std::make_shared<Shape>(machine.get());
@@ -239,8 +241,8 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
 
     // Connect elevators to pulley
     pulleyElevatorEC->GetRotationSource()->AddSink(elevator1EC.get());
-    pulleyElevatorEC->GetRotationSource()->AddSink(elevator2EC.get());
-    pulleyElevatorEC->GetRotationSource()->AddSink(elevator3EC.get());
+    //pulleyElevatorEC->GetRotationSource()->AddSink(elevator2EC.get());
+    //pulleyElevatorEC->GetRotationSource()->AddSink(elevator3EC.get());
 }
 
 /**

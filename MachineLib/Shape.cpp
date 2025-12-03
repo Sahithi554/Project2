@@ -71,12 +71,7 @@ Shape::Shape(Machine* machine) : Component(machine)
     mBehavior = std::make_unique<StaticBehavior>();
 }
 
-void Shape::Rectangle(double x, double y, double width, double height)
-{
-    if (mPolygon) {
-        mPolygon->Rectangle(x, y, width, height);
-    }
-}
+
 
 void Shape::Circle(double radius)
 {
@@ -91,6 +86,14 @@ void Shape::BottomCenteredRectangle(double width, double height)
         mPolygon->BottomCenteredRectangle(width, height);
     }
 }
+
+void Shape::Rectangle(double x, double y, double width, double height)
+{
+    if (mPolygon) {
+        mPolygon->Rectangle(x, y, width, height);
+    }
+}
+
 
 void Shape::AddPoint(double x, double y)
 {

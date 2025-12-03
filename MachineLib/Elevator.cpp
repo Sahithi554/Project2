@@ -97,7 +97,7 @@ void Elevator::Rotate(double rotation, double speed)
     // The multiplier determines how fast the elevator moves per turn/second
     double verticalVelocityCm = speed * mSpeedMultiplier;
 
-    // Convert to meters for Box2D
+    // Convert to meters for Box2D (divide by 100)
     double velocityMeters = verticalVelocityCm / Consts::MtoCM;
 
     // Get the elevator body
@@ -106,10 +106,9 @@ void Elevator::Rotate(double rotation, double speed)
     // CRITICAL: Disable gravity for kinematic bodies
     body->SetGravityScale(0.0f);
 
-    // CRITICAL FIX: Box2D's Y-axis is opposite to rendering Y-axis
-    // In Box2D physics: negative Y is UP (same direction as negative gravity)
-    // So we need to NEGATE the velocity to move up
-    body->SetLinearVelocity(b2Vec2(0.0f, (float)(-velocityMeters)));
+    // Box2D coordinate system: Positive Y = UP
+    // We want positive speed to move UP, so use velocity as-is
+    body->SetLinearVelocity(b2Vec2(0.0f, (float)velocityMeters));
 }
 
 /**
@@ -126,8 +125,8 @@ void Elevator::Update(double time)
         b2Body* body = GetBody();
         body->SetGravityScale(0.0f);
 
-        // NEGATE the velocity because Box2D Y-axis is opposite to screen Y-axis
-        body->SetLinearVelocity(b2Vec2(0.0f, (float)(-velocityMeters)));
+        // Positive velocity = UP in Box2D
+        body->SetLinearVelocity(b2Vec2(0.0f, (float)velocityMeters));
 
         // Also push objects that are on the elevator
         b2ContactEdge* edge = body->GetContactList();
@@ -140,9 +139,9 @@ void Elevator::Update(double time)
 
                 if (otherBody != nullptr && otherBody->GetType() == b2_dynamicBody)
                 {
-                    // Give the object on top the same vertical velocity (also negated)
+                    // Give the object on top the same vertical velocity
                     b2Vec2 currentVel = otherBody->GetLinearVelocity();
-                    otherBody->SetLinearVelocity(b2Vec2(currentVel.x, (float)(-velocityMeters)));
+                    otherBody->SetLinearVelocity(b2Vec2(currentVel.x, (float)velocityMeters));
                 }
             }
             edge = edge->next;
