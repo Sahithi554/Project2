@@ -1,7 +1,7 @@
 /**
  * @file Conveyor.cpp
  * @author Sahithi Nalamalpu
- * @brief Implementation of the Conveyor component.
+ * @brief FIXED - Conveyor with PreSolve for proper surface movement
  */
 
 #include "pch.h"
@@ -57,7 +57,7 @@ void Conveyor::SetSize(double width, double height)
     if (mPolygon)
     {
         // Create a rectangle for the conveyor surface
-        mPolygon->Rectangle(-width/2, -height/2, width, height);
+        mPolygon->BottomCenteredRectangle(width, height);
     }
 }
 
@@ -80,7 +80,6 @@ void Conveyor::Draw(std::shared_ptr<wxGraphicsContext> graphics)
 void Conveyor::SetRotation(double rotation)
 {
     // Conveyors don't rotate visually, they just move objects horizontally
-    // The rotation value isn't used directly
 }
 
 /**
@@ -90,15 +89,10 @@ void Conveyor::SetRotation(double rotation)
  */
 void Conveyor::Rotate(double rotation, double speed)
 {
-    mSpeed = speed;
-    
-    // Apply horizontal velocity to objects on the conveyor surface
-    // Positive speed moves objects to the right, negative to the left
-    if (mPolygon && GetBody() != nullptr)
-    {
-        // The conveyor itself doesn't move, but we'll apply velocity to contacting bodies
-        // This is handled in the Update method
-    }
+    // Store the speed
+    // IMPORTANT: Clockwise rotation (positive in our system) should move RIGHT
+    // But Box2D uses negative for clockwise, so we negate
+    mSpeed = -speed; // Negate because Box2D clockwise is negative
 }
 
 /**
@@ -107,36 +101,57 @@ void Conveyor::Rotate(double rotation, double speed)
  */
 void Conveyor::Update(double time)
 {
-    // Apply horizontal velocity to objects in contact with the conveyor
-    if (mPolygon && GetBody() != nullptr && mSpeed != 0)
+    if (!mPolygon || GetBody() == nullptr || mSpeed == 0)
     {
-        b2Body* conveyorBody = GetBody();
-        b2ContactEdge* edge = conveyorBody->GetContactList();
-        
-        // Calculate horizontal velocity in cm/s, then convert to m/s for Box2D
-        double horizontalVelocity = mSpeed * mSpeedMultiplier; // cm/s
-        double velocityMeters = horizontalVelocity / Consts::MtoCM; // m/s (divide by 100 to convert cm to m)
-        
-        // Apply velocity to all bodies in contact with the conveyor
-        while (edge != nullptr)
+        return;
+    }
+
+    // Calculate horizontal velocity in cm/s
+    double horizontalVelocityCm = mSpeed * mSpeedMultiplier;
+
+    // Convert to meters for Box2D
+    double velocityMeters = horizontalVelocityCm / Consts::MtoCM;
+
+    // Get the conveyor body
+    b2Body* conveyorBody = GetBody();
+
+    // Apply velocity to all bodies in contact with the conveyor
+    auto contact = conveyorBody->GetContactList();
+    while (contact != nullptr)
+    {
+        if (contact->contact->IsTouching())
         {
-            b2Contact* contact = edge->contact;
-            if (contact->IsTouching())
+            b2Body* otherBody = contact->other;
+
+            if (otherBody != nullptr && otherBody->GetType() == b2_dynamicBody)
             {
-                // Get the other body (the one touching the conveyor)
-                b2Body* otherBody = edge->other;
-                
-                if (otherBody != nullptr && otherBody->GetType() == b2_dynamicBody)
-                {
-                    // Get current velocity
-                    b2Vec2 currentVel = otherBody->GetLinearVelocity();
-                    
-                    // Set horizontal velocity (preserve vertical velocity for gravity)
-                    otherBody->SetLinearVelocity(b2Vec2((float)velocityMeters, currentVel.y));
-                }
+                // Set horizontal velocity (preserve vertical velocity for gravity/jumping)
+                b2Vec2 currentVel = otherBody->GetLinearVelocity();
+                otherBody->SetLinearVelocity(b2Vec2((float)velocityMeters, currentVel.y));
             }
-            edge = edge->next;
         }
+        contact = contact->next;
     }
 }
 
+/**
+ * PreSolve - Set tangent speed for conveyor surface
+ * This is the KEY to making the conveyor work smoothly
+ * @param contact The Box2D contact
+ * @param oldManifold The previous contact manifold
+ */
+void Conveyor::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
+{
+    if (!mPolygon || GetBody() == nullptr)
+    {
+        return;
+    }
+
+    // Calculate the surface speed
+    double horizontalVelocityCm = mSpeed * mSpeedMultiplier;
+    double velocityMeters = horizontalVelocityCm / Consts::MtoCM;
+
+    // Set the tangent speed - this makes objects slide along the surface
+    // as if the surface itself is moving
+    contact->SetTangentSpeed((float)velocityMeters);
+}

@@ -1,11 +1,11 @@
 /**
  * @file Elevator.h
  * @author Sahithi Nalamalpu
- * @brief An elevator component that moves vertically.
+ * @brief An elevator component that moves vertically and carries objects.
  *
  * The elevator platform itself moves up and down.
  * Elevators are rotation sinks (driven by pulleys).
- * Objects on the platform automatically move with it via physics.
+ * Objects on the platform automatically move with it via PreSolve.
  */
 
 #ifndef CANADIANEXPERIENCE_ELEVATOR_H
@@ -14,17 +14,20 @@
 #include "Component.h"
 #include "PhysicsPolygon.h"
 #include <memory>
+#include <b2_world_callbacks.h>
 
 class Machine;
+class b2Contact;
+class b2Manifold;
 
 /**
  * Elevator component that moves vertically.
  *
  * An elevator is driven by a rotation source (pulley) and the platform
  * itself moves up and down. Objects on the platform move with it
- * automatically through physics contact.
+ * automatically through PreSolve contact handling.
  */
-class Elevator : public Component
+class Elevator : public Component, public b2ContactListener
 {
 private:
     /// The polygon representing the elevator platform
@@ -103,6 +106,14 @@ public:
      * @param time Elapsed time in seconds
      */
     void Update(double time) override;
+
+    /**
+     * PreSolve - Called before Box2D solves contact
+     * This makes objects on top of the elevator move with it
+     * @param contact The Box2D contact
+     * @param oldManifold The previous contact manifold
+     */
+    void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override;
 
     /**
      * Get the polygon representing this elevator

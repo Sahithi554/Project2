@@ -1,7 +1,7 @@
 /**
  * @file Elevator.cpp
  * @author Sahithi Nalamalpu
- * @brief FIXED - Elevator that actually goes up
+ * @brief FIXED - Elevator that moves UP and carries objects
  */
 
 #include "pch.h"
@@ -10,8 +10,7 @@
 #include "Consts.h"
 #include <b2_body.h>
 #include <b2_fixture.h>
-
-#include "b2_contact.h"
+#include <b2_contact.h>
 
 /**
  * Constructor
@@ -21,7 +20,7 @@ Elevator::Elevator(Machine* machine) : Component(machine)
     mPolygon = std::make_shared<cse335::PhysicsPolygon>();
     // CRITICAL: Set as kinematic so it doesn't fall
     mPolygon->SetKinematic();
-    // Also set physics properties for the platform
+    // Set physics properties for the platform
     mPolygon->SetPhysics(1.0, 0.5, 0.0);
 }
 
@@ -42,6 +41,7 @@ void Elevator::SetImage(const std::wstring& path)
 void Elevator::SetPosition(double x, double y)
 {
     Component::SetPosition(wxPoint2DDouble(x, y));
+    mInitialPosition = wxPoint2DDouble(x, y);
     if (mPolygon)
     {
         mPolygon->SetInitialPosition(x, y);
@@ -75,27 +75,34 @@ void Elevator::Draw(std::shared_ptr<wxGraphicsContext> graphics)
  */
 void Elevator::SetRotation(double rotation)
 {
-    // Not used for elevators
+    // Not used for elevators - they move linearly
 }
 
 /**
  * THE KEY METHOD - This is called by the rotation source
- * @param rotation Rotation in turns (0-1)
+ * @param rotation Rotation in turns (0-1) - not used for elevators
  * @param speed Rotation speed in turns per second
  */
 void Elevator::Rotate(double rotation, double speed)
 {
     // Store the speed
     mSpeed = speed;
+}
 
+/**
+ * Update the elevator - moves it vertically
+ */
+void Elevator::Update(double time)
+{
     if (!mPolygon || GetBody() == nullptr)
     {
         return;
     }
 
     // Calculate vertical velocity
+    // POSITIVE speed should move UP (positive Y in Box2D)
     // The multiplier determines how fast the elevator moves per turn/second
-    double verticalVelocityCm = speed * mSpeedMultiplier;
+    double verticalVelocityCm = mSpeed * mSpeedMultiplier;
 
     // Convert to meters for Box2D (divide by 100)
     double velocityMeters = verticalVelocityCm / Consts::MtoCM;
@@ -107,44 +114,46 @@ void Elevator::Rotate(double rotation, double speed)
     body->SetGravityScale(0.0f);
 
     // Box2D coordinate system: Positive Y = UP
-    // We want positive speed to move UP, so use velocity as-is
+    // Set the elevator's velocity (positive = upward)
     body->SetLinearVelocity(b2Vec2(0.0f, (float)velocityMeters));
 }
 
 /**
- * Update the elevator
+ * PreSolve - helps objects ride on the elevator
+ * This ensures objects on top move with the elevator
  */
-void Elevator::Update(double time)
+void Elevator::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
 {
-    // Make sure velocity is still applied (in case it gets reset)
-    if (mPolygon && GetBody() != nullptr && mSpeed != 0)
+    if (!mPolygon || GetBody() == nullptr)
     {
-        double verticalVelocityCm = mSpeed * mSpeedMultiplier;
-        double velocityMeters = verticalVelocityCm / Consts::MtoCM;
+        return;
+    }
 
-        b2Body* body = GetBody();
-        body->SetGravityScale(0.0f);
+    // Calculate the vertical velocity
+    double verticalVelocityCm = mSpeed * mSpeedMultiplier;
+    double velocityMeters = verticalVelocityCm / Consts::MtoCM;
 
-        // Positive velocity = UP in Box2D
-        body->SetLinearVelocity(b2Vec2(0.0f, (float)velocityMeters));
+    // Get the bodies in contact
+    b2Body* bodyA = contact->GetFixtureA()->GetBody();
+    b2Body* bodyB = contact->GetFixtureB()->GetBody();
+    b2Body* elevatorBody = GetBody();
+    b2Body* otherBody = nullptr;
 
-        // Also push objects that are on the elevator
-        b2ContactEdge* edge = body->GetContactList();
-        while (edge != nullptr)
-        {
-            b2Contact* contact = edge->contact;
-            if (contact->IsTouching())
-            {
-                b2Body* otherBody = edge->other;
+    // Determine which body is the elevator and which is the object on it
+    if (bodyA == elevatorBody)
+    {
+        otherBody = bodyB;
+    }
+    else if (bodyB == elevatorBody)
+    {
+        otherBody = bodyA;
+    }
 
-                if (otherBody != nullptr && otherBody->GetType() == b2_dynamicBody)
-                {
-                    // Give the object on top the same vertical velocity
-                    b2Vec2 currentVel = otherBody->GetLinearVelocity();
-                    otherBody->SetLinearVelocity(b2Vec2(currentVel.x, (float)velocityMeters));
-                }
-            }
-            edge = edge->next;
-        }
+    // If we found the other body and it's dynamic (movable)
+    if (otherBody != nullptr && otherBody->GetType() == b2_dynamicBody)
+    {
+        // Give the object the same vertical velocity as the elevator
+        b2Vec2 currentVel = otherBody->GetLinearVelocity();
+        otherBody->SetLinearVelocity(b2Vec2(currentVel.x, (float)velocityMeters));
     }
 }

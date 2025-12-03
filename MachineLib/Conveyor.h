@@ -1,10 +1,11 @@
 /**
  * @file Conveyor.h
  * @author Sahithi Nalamalpu
- * @brief A conveyor component that moves objects horizontally.
+ * @brief A conveyor component that moves objects horizontally using PreSolve.
  *
  * Conveyors are rotation sinks (can be driven by motors or pulleys).
- * When driven, they apply horizontal velocity to objects on their surface.
+ * When driven, they apply horizontal velocity to objects on their surface
+ * using both SetLinearVelocity and SetTangentSpeed in PreSolve.
  */
 
 #ifndef CANADIANEXPERIENCE_CONVEYOR_H
@@ -13,16 +14,20 @@
 #include "Component.h"
 #include "PhysicsPolygon.h"
 #include <memory>
+#include <b2_world_callbacks.h>
 
 class Machine;
+class b2Contact;
+class b2Manifold;
 
 /**
  * Conveyor component that moves objects horizontally.
  *
  * A conveyor is driven by a rotation source and applies horizontal
  * velocity to objects that come into contact with its surface.
+ * Uses PreSolve to set tangent speed for smooth conveyor action.
  */
-class Conveyor : public Component
+class Conveyor : public Component, public b2ContactListener
 {
 private:
     /// The polygon representing the conveyor surface
@@ -96,6 +101,14 @@ public:
     void Update(double time) override;
 
     /**
+     * PreSolve - Set tangent speed for smooth conveyor action
+     * This is called by Box2D before solving the contact
+     * @param contact The Box2D contact
+     * @param oldManifold The previous contact manifold
+     */
+    void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override;
+
+    /**
      * Get the polygon representing this conveyor
      * @return Shared pointer to PhysicsPolygon
      */
@@ -109,4 +122,3 @@ public:
 };
 
 #endif // CANADIANEXPERIENCE_CONVEYOR_H
-
