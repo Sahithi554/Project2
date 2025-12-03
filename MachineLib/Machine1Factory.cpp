@@ -65,7 +65,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    auto basketball = std::make_shared<Shape>(machine.get());
    basketball->Circle(16);
    basketball->SetImage(mImagesDir + L"/basketball.png");
-   basketball->SetInitialPosition(-410, 550);
+   basketball->SetInitialPosition(-340, 530);
    basketball->SetDynamic();
    basketball->SetPhysics(1, 0.5, 0.5);
    machine->AddComponent(basketball);
@@ -79,7 +79,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    auto bowlingball = std::make_shared<Shape>(machine.get());
    bowlingball->Circle(16);
    bowlingball->SetImage(mImagesDir + L"/bowlingball.png");
-   bowlingball->SetInitialPosition(-300, 80);
+   bowlingball->SetInitialPosition(-420, 80);
    bowlingball->SetDynamic();
    bowlingball->SetPhysics(5, 0.5, 0.6);
    machine->AddComponent(bowlingball);
@@ -224,7 +224,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
    auto basketballRamp = std::make_shared<Shape>(machine.get());
    basketballRamp->BottomCenteredRectangle(100, 5);  // 100cm long, 5cm thick
    basketballRamp->SetImage(mImagesDir + L"/beam.png");
-   //basketballRamp->SetInitialRotation(0.1);  // Angled downward (negative = clockwise in Box2D)
+   basketballRamp->SetInitialRotation(-1.0);  // Angled downward (negative = clockwise in Box2D)
    basketballRamp->SetInitialPosition(-335, 513);  // Midpoint between ball and conveyor
    machine->AddComponent(basketballRamp);
    if (world) {
@@ -246,7 +246,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
    // Pulley on conveyor - YOUR ORIGINAL POSITION
    auto pulleyConveyorEC = std::make_shared<Pulley>(machine.get(), 10);
    pulleyConveyorEC->SetImage(mImagesDir + L"/pulley.png");
-   pulleyConveyorEC->SetPosition(-300, 490);
+   pulleyConveyorEC->SetPosition(-300, 500);
    machine->AddComponent(pulleyConveyorEC);
 
 

@@ -127,7 +127,7 @@ void Conveyor::Update(double time)
             {
                 // Set horizontal velocity (preserve vertical velocity for gravity/jumping)
                 b2Vec2 currentVel = otherBody->GetLinearVelocity();
-                otherBody->SetLinearVelocity(b2Vec2((float)velocityMeters, currentVel.y));
+                otherBody->SetLinearVelocity(b2Vec2(-(float)velocityMeters, currentVel.y));
             }
         }
         contact = contact->next;

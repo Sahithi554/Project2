@@ -48,6 +48,8 @@ public:
 
     /// Destructor
     virtual ~Conveyor() = default;
+    void GetShaftPosition();
+
 
     /// Copy constructor (disabled)
     Conveyor(const Conveyor &) = delete;
