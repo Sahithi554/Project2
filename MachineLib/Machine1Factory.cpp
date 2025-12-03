@@ -43,7 +43,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
     auto basketball = std::make_shared<Shape>(machine.get());
     basketball->Circle(16);
     basketball->SetImage(mImagesDir + L"/basketball.png");
-    basketball->SetInitialPosition(-200, 350);
+    basketball->SetInitialPosition(-420, 550);
     basketball->SetDynamic();
     basketball->SetPhysics(1, 0.5, 0.5);
     machine->AddComponent(basketball);
@@ -80,7 +80,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
 
     // Floor
     auto floor = std::make_shared<Shape>(machine.get());
-    int thisFloorWidth = FloorWidth + 200;
+    int thisFloorWidth = FloorWidth + 225;
     floor->Rectangle(-thisFloorWidth/2, -FloorHeight, thisFloorWidth, FloorHeight);
     floor->SetImage(mImagesDir + L"/floor.png");
     floor->SetInitialPosition(50, -40);
@@ -137,9 +137,9 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
 
     // Motor for elevator/conveyor
     auto motorEC = std::make_shared<Motor>(machine.get(), mImagesDir);
-    motorEC->SetPosition(-20, 340);
+    motorEC->SetPosition(-130, 510);
     motorEC->SetInitiallyRunning(true);
-    motorEC->SetSpeed(0.25);
+    motorEC->SetSpeed(1.0);
     machine->AddComponent(motorEC);
     if (world) {
         motorEC->GetBox()->InstallPhysics(world);
@@ -165,7 +165,8 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     auto elevator1EC = std::make_shared<Elevator>(machine.get());
     elevator1EC->SetSize(50, 15);
     elevator1EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator1EC->SetPosition(-277.5, -47.5);
+    elevator1EC->SetPosition(-450, -40);
+    elevator1EC->GetPolygon()->SetKinematic();
     machine->AddComponent(elevator1EC);
     if (world) {
         elevator1EC->GetPolygon()->InstallPhysics(world);
@@ -175,7 +176,8 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     auto elevator2EC = std::make_shared<Elevator>(machine.get());
     elevator2EC->SetSize(50, 15);
     elevator2EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator2EC->SetPosition(-277.5, 102.5);
+    elevator2EC->SetPosition(-450, 40);
+    elevator2EC->GetPolygon()->SetKinematic();  // ← ADD THIS LINE!
     machine->AddComponent(elevator2EC);
     if (world) {
         elevator2EC->GetPolygon()->InstallPhysics(world);
@@ -185,7 +187,8 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     auto elevator3EC = std::make_shared<Elevator>(machine.get());
     elevator3EC->SetSize(50, 15);
     elevator3EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator3EC->SetPosition(-277.5, 252.5);
+    elevator3EC->SetPosition(-450, 40);
+    elevator3EC->GetPolygon()->SetKinematic();
     machine->AddComponent(elevator3EC);
     if (world) {
         elevator3EC->GetPolygon()->InstallPhysics(world);
@@ -218,7 +221,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     // Pulley on conveyor
     auto pulleyConveyorEC = std::make_shared<Pulley>(machine.get(), 10);
     pulleyConveyorEC->SetImage(mImagesDir + L"/pulley.png");
-    pulleyConveyorEC->SetPosition(-150, 320);  // Position above conveyor
+    pulleyConveyorEC->SetPosition(-300, 490);  // Position above conveyor
     machine->AddComponent(pulleyConveyorEC);
 
     pulleyMotorEC->Drive(pulleyConveyorEC.get());
@@ -229,7 +232,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     // Pulley for elevators
     auto pulleyElevatorEC = std::make_shared<Pulley>(machine.get(), 10);
     pulleyElevatorEC->SetImage(mImagesDir + L"/pulley.png");
-    pulleyElevatorEC->SetPosition(-310, 370);
+    pulleyElevatorEC->SetPosition(-475, 550);
     machine->AddComponent(pulleyElevatorEC);
 
     pulleyConveyorEC->Drive(pulleyElevatorEC.get());
@@ -253,7 +256,7 @@ void Machine1Factory::SiegeContraption(std::shared_ptr<Machine> machine)
     auto beamSC = std::make_shared<Shape>(machine.get());
     beamSC->BottomCenteredRectangle(180, FloorHeight);
     beamSC->SetImage(mImagesDir + L"/beam.png");
-    beamSC->SetInitialPosition(-290, 420);
+    beamSC->SetInitialPosition(-200, 215);
     machine->AddComponent(beamSC);
     if (world) {
         beamSC->GetPolygon()->InstallPhysics(world);
@@ -268,7 +271,7 @@ void Machine1Factory::SiegeContraption(std::shared_ptr<Machine> machine)
     wedgeSC->AddPoint(-5, 45);
     wedgeSC->SetImage(mImagesDir + L"/wedge.png");
     wedgeSC->SetInitialRotation(0.25);
-    wedgeSC->SetInitialPosition(-90, 240);
+    wedgeSC->SetInitialPosition(-110, 235);
     machine->AddComponent(wedgeSC);
     if (world) {
         wedgeSC->GetPolygon()->InstallPhysics(world);
