@@ -39,7 +39,19 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
     auto machine = std::make_shared<Machine>(num);
     auto world = machine->GetWorld();
 
-    // Basketball
+    // Floor - MAIN GROUND
+    auto floor = std::make_shared<Shape>(machine.get());
+    int thisFloorWidth = FloorWidth + 225;
+    floor->Rectangle(-thisFloorWidth/2, -FloorHeight, thisFloorWidth, FloorHeight);
+    floor->SetImage(mImagesDir + L"/floor.png");
+    floor->SetInitialPosition(50, -40);
+    machine->AddComponent(floor);
+    if (world) {
+        floor->GetPolygon()->InstallPhysics(world);
+        floor->SetBody(floor->GetPolygon()->GetBody());
+    }
+
+    // Basketball - starts high up
     auto basketball = std::make_shared<Shape>(machine.get());
     basketball->Circle(16);
     basketball->SetImage(mImagesDir + L"/basketball.png");
@@ -52,7 +64,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
         basketball->SetBody(basketball->GetPolygon()->GetBody());
     }
 
-    // Bowling ball
+    // Bowling ball - starts on ramp
     auto bowlingball = std::make_shared<Shape>(machine.get());
     bowlingball->Circle(16);
     bowlingball->SetImage(mImagesDir + L"/bowlingball.png");
@@ -78,50 +90,45 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
         tennisball->SetBody(tennisball->GetPolygon()->GetBody());
     }
 
-    // Floor
-    auto floor = std::make_shared<Shape>(machine.get());
-    int thisFloorWidth = FloorWidth + 225;
-    floor->Rectangle(-thisFloorWidth/2, -FloorHeight, thisFloorWidth, FloorHeight);
-    floor->SetImage(mImagesDir + L"/floor.png");
-    floor->SetInitialPosition(50, -40);
-    machine->AddComponent(floor);
-    if (world) {
-        floor->GetPolygon()->InstallPhysics(world);
-        floor->SetBody(floor->GetPolygon()->GetBody());
-    }
-
     // Elevator and Conveyor system
     ElevatorAndConveyor(machine);
 
-    // Platform 1 (for dominoes)
+    // Platform 1 (for dominoes) - CRITICAL FIX
+    // Rectangle is defined as: Rectangle(left, bottom, width, height)
+    // With inverted Y: Rectangle(-150, -FloorHeight/2, 300, FloorHeight)
+    // This creates a platform from -150 to +150 horizontally
+    // Vertically from -7.5 to +7.5 (relative to position)
     auto platform1 = std::make_shared<Shape>(machine.get());
-    platform1->Rectangle(-150, -FloorHeight/2, 300, FloorHeight);
+    platform1->Rectangle(-150, 0, 300, FloorHeight); // Start at Y=0, go UP FloorHeight
     platform1->SetImage(mImagesDir + L"/floor.png");
-    platform1->SetInitialPosition(210, 250);
+    platform1->SetInitialPosition(210, 250); // Position at 250
     machine->AddComponent(platform1);
     if (world) {
         platform1->GetPolygon()->InstallPhysics(world);
         platform1->SetBody(platform1->GetPolygon()->GetBody());
     }
 
-    DominoStack(machine, wxPoint2DDouble(150, 250));
+    // Place dominoes ON TOP of platform1
+    // Platform top surface is at Y = 250 + FloorHeight = 265
+    DominoStack(machine, wxPoint2DDouble(210, 250 + FloorHeight));
 
-    // Platform 2 (for bowling pins)
+    // Platform 2 (for bowling pins) - CRITICAL FIX
     auto platform2 = std::make_shared<Shape>(machine.get());
-    platform2->Rectangle(-150, -FloorHeight/2, 300, FloorHeight);
+    platform2->Rectangle(-150, 0, 300, FloorHeight); // Start at Y=0, go UP FloorHeight
     platform2->SetImage(mImagesDir + L"/floor.png");
-    platform2->SetInitialPosition(265, 100);
+    platform2->SetInitialPosition(265, 100); // Position at 100
     machine->AddComponent(platform2);
     if (world) {
         platform2->GetPolygon()->InstallPhysics(world);
         platform2->SetBody(platform2->GetPolygon()->GetBody());
     }
 
-    BowlingPinStack(machine, wxPoint2DDouble(150, 100));
+    // Place bowling pins ON TOP of platform2
+    // Platform top surface is at Y = 100 + FloorHeight = 115
+    BowlingPinStack(machine, wxPoint2DDouble(265, 100 + FloorHeight));
 
     // Siege contraption
     SiegeContraption(machine);
-
 
     return machine;
 }
@@ -161,41 +168,17 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
         conveyorEC->SetBody(conveyorEC->GetPolygon()->GetBody());
     }
 
-    // Elevators
+    // Elevator
     auto elevator1EC = std::make_shared<Elevator>(machine.get());
     elevator1EC->SetSize(50, 15);
     elevator1EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator1EC->SetPosition(-420, -50);  //-420, 550
+    elevator1EC->SetPosition(-420, -50);
     elevator1EC->GetPolygon()->SetKinematic();
     machine->AddComponent(elevator1EC);
     if (world) {
         elevator1EC->GetPolygon()->InstallPhysics(world);
         elevator1EC->SetBody(elevator1EC->GetPolygon()->GetBody());
     }
-
-    /**
-    auto elevator2EC = std::make_shared<Elevator>(machine.get());
-    elevator2EC->SetSize(50, 15);
-    elevator2EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator2EC->SetPosition(-450, 40);
-    elevator2EC->GetPolygon()->SetKinematic();  // ← ADD THIS LINE!
-    machine->AddComponent(elevator2EC);
-    if (world) {
-        elevator2EC->GetPolygon()->InstallPhysics(world);
-        elevator2EC->SetBody(elevator2EC->GetPolygon()->GetBody());
-    }
-
-    auto elevator3EC = std::make_shared<Elevator>(machine.get());
-    elevator3EC->SetSize(50, 15);
-    elevator3EC->SetImage(mImagesDir + L"/beam2.png");
-    elevator3EC->SetPosition(-450, 40);
-    elevator3EC->GetPolygon()->SetKinematic();
-    machine->AddComponent(elevator3EC);
-    if (world) {
-        elevator3EC->GetPolygon()->InstallPhysics(world);
-        elevator3EC->SetBody(elevator3EC->GetPolygon()->GetBody());
-    }
-    **/
 
     // Wedge near elevator
     auto wedgeEC = std::make_shared<Shape>(machine.get());
@@ -223,7 +206,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     // Pulley on conveyor
     auto pulleyConveyorEC = std::make_shared<Pulley>(machine.get(), 10);
     pulleyConveyorEC->SetImage(mImagesDir + L"/pulley.png");
-    pulleyConveyorEC->SetPosition(-300, 490);  // Position above conveyor
+    pulleyConveyorEC->SetPosition(-300, 490);
     machine->AddComponent(pulleyConveyorEC);
 
     pulleyMotorEC->Drive(pulleyConveyorEC.get());
@@ -231,7 +214,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
     // Connect conveyor to pulley
     pulleyConveyorEC->GetRotationSource()->AddSink(conveyorEC.get());
 
-    // Pulley for elevators
+    // Pulley for elevator
     auto pulleyElevatorEC = std::make_shared<Pulley>(machine.get(), 10);
     pulleyElevatorEC->SetImage(mImagesDir + L"/pulley.png");
     pulleyElevatorEC->SetPosition(-475, 550);
@@ -239,10 +222,8 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
 
     pulleyConveyorEC->Drive(pulleyElevatorEC.get());
 
-    // Connect elevators to pulley
+    // Connect elevator to pulley
     pulleyElevatorEC->GetRotationSource()->AddSink(elevator1EC.get());
-    //pulleyElevatorEC->GetRotationSource()->AddSink(elevator2EC.get());
-    //pulleyElevatorEC->GetRotationSource()->AddSink(elevator3EC.get());
 }
 
 /**
@@ -283,7 +264,7 @@ void Machine1Factory::SiegeContraption(std::shared_ptr<Machine> machine)
     // Motor for siege (oscillating)
     auto motorSC = std::make_shared<Motor>(machine.get(), mImagesDir);
     motorSC->SetPosition(-230, 25);
-    motorSC->SetInitiallyRunning(false);  // Idle until hit
+    motorSC->SetInitiallyRunning(false);
     motorSC->SetSpeed(0.2);
     motorSC->SetOscillating(true);
     motorSC->SetSpread(0.1);
@@ -320,7 +301,7 @@ void Machine1Factory::SiegeContraption(std::shared_ptr<Machine> machine)
 
     pulleyMotorSC->Drive(pulleyMidInnerSC.get());
 
-    // Connect inner to outer (they're on the same shaft, so they rotate together)
+    // Connect inner to outer (they're on the same shaft)
     pulleyMidInnerSC->GetRotationSource()->AddSink(pulleyMidOuterSC.get());
 
     // Pulley for the arm/spoon
@@ -354,56 +335,68 @@ void Machine1Factory::SiegeContraption(std::shared_ptr<Machine> machine)
 /**
  * Generate a stack of dominoes
  * @param machine Machine to add to
- * @param position Base position for the domino stack
+ * @param position Base position for the domino stack (TOP of platform surface)
  */
 void Machine1Factory::DominoStack(std::shared_ptr<Machine> machine, wxPoint2DDouble position)
 {
+    // Center stack (pyramid)
     Domino(machine, position + wxPoint2DDouble(-DominoHeight/2 + DominoWidth/2, DominoHeight/2), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(DominoHeight/2 - DominoWidth/2, DominoHeight/2), 0, DominoColor::Green);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight/2 + DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Blue);
     Domino(machine, position + wxPoint2DDouble(DominoHeight/2 - DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight/2 + DominoWidth/2, DominoHeight*2.5), 0, DominoColor::Green);
     Domino(machine, position + wxPoint2DDouble(DominoHeight/2 - DominoWidth/2, DominoHeight*2.5), 0, DominoColor::Blue);
-    Domino(machine, position + wxPoint2DDouble(DominoHeight/2 - DominoWidth*2.5, DominoHeight*3 + DominoWidth/2), 0.25, DominoColor::Black);
+    Domino(machine, position + wxPoint2DDouble(0, DominoHeight*3 + DominoWidth/2), 0.25, DominoColor::Black);
 
+    // Left stack 1
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5 - DominoHeight/2 + DominoWidth/2, DominoHeight/2), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5 + DominoHeight/2 - DominoWidth/2, DominoHeight/2), 0, DominoColor::Green);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5 - DominoHeight/2 + DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Blue);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5 + DominoHeight/2 - DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Red);
-    Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5 + DominoHeight/2 - DominoWidth*2.5, DominoHeight*2 + DominoWidth/2), 0.25, DominoColor::Black);
+    Domino(machine, position + wxPoint2DDouble(-DominoHeight*1.5, DominoHeight*2 + DominoWidth/2), 0.25, DominoColor::Black);
 
+    // Right stack 1
     Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5 - DominoHeight/2 + DominoWidth/2, DominoHeight/2), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5 + DominoHeight/2 - DominoWidth/2, DominoHeight/2), 0, DominoColor::Green);
     Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5 - DominoHeight/2 + DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Blue);
     Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5 + DominoHeight/2 - DominoWidth/2, DominoHeight*1.5), 0, DominoColor::Red);
-    Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5 + DominoHeight/2 - DominoWidth*2.5, DominoHeight*2 + DominoWidth/2), 0.25, DominoColor::Black);
+    Domino(machine, position + wxPoint2DDouble(DominoHeight*1.5, DominoHeight*2 + DominoWidth/2), 0.25, DominoColor::Black);
 
+    // Left stack 2
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*3 - DominoHeight/2 + DominoWidth/2, DominoHeight/2), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(-DominoHeight*3 + DominoHeight/2 - DominoWidth/2, DominoHeight/2), 0, DominoColor::Green);
-    Domino(machine, position + wxPoint2DDouble(-DominoHeight*3 + DominoHeight/2 - DominoWidth*2.5, DominoHeight + DominoWidth/2), 0.25, DominoColor::Black);
+    Domino(machine, position + wxPoint2DDouble(-DominoHeight*3, DominoHeight + DominoWidth/2), 0.25, DominoColor::Black);
 
+    // Right stack 2
     Domino(machine, position + wxPoint2DDouble(DominoHeight*3 - DominoHeight/2 + DominoWidth/2, DominoHeight/2), 0, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(DominoHeight*3 + DominoHeight/2 - DominoWidth/2, DominoHeight/2), 0, DominoColor::Green);
-    Domino(machine, position + wxPoint2DDouble(DominoHeight*3 + DominoHeight/2 - DominoWidth*2.5, DominoHeight + DominoWidth/2), 0.25, DominoColor::Black);
+    Domino(machine, position + wxPoint2DDouble(DominoHeight*3, DominoHeight + DominoWidth/2), 0.25, DominoColor::Black);
 }
 
 /**
  * Generate a stack of bowling pins
  * @param machine Machine to add to
- * @param position Base position for the pin stack
+ * @param position Base position for the pin stack (TOP of platform surface)
  */
 void Machine1Factory::BowlingPinStack(std::shared_ptr<Machine> machine, wxPoint2DDouble position)
 {
+    // Bottom row - 3 pins
     BowlingPin(machine, position + wxPoint2DDouble(0, BowlingPinHeight/2));
     BowlingPin(machine, position + wxPoint2DDouble(-DominoHeight, BowlingPinHeight/2));
     BowlingPin(machine, position + wxPoint2DDouble(DominoHeight, BowlingPinHeight/2));
+
+    // Spacers between bottom and middle
     Domino(machine, position + wxPoint2DDouble(-DominoHeight/2, BowlingPinHeight + DominoWidth/2), 0.25, DominoColor::Red);
     Domino(machine, position + wxPoint2DDouble(DominoHeight/2, BowlingPinHeight + DominoWidth/2), 0.25, DominoColor::Green);
 
+    // Middle row - 2 pins
     BowlingPin(machine, position + wxPoint2DDouble(-DominoHeight/2, BowlingPinHeight*1.5 + DominoWidth));
     BowlingPin(machine, position + wxPoint2DDouble(DominoHeight/2, BowlingPinHeight*1.5 + DominoWidth));
+
+    // Another spacer
     Domino(machine, position + wxPoint2DDouble(0, BowlingPinHeight*2 + DominoWidth*1.5), 0.25, DominoColor::Blue);
 
+    // Top pin
     BowlingPin(machine, position + wxPoint2DDouble(0, BowlingPinHeight*2.5 + DominoWidth*2));
 }
 
@@ -446,7 +439,10 @@ std::shared_ptr<Shape> Machine1Factory::Domino(std::shared_ptr<Machine> machine,
     domino->SetInitialPosition(x, y);
     domino->SetInitialRotation(rotation);
     domino->SetDynamic();
-    domino->SetPhysics(0.5, 0.5, 0.75);
+
+    // CRITICAL: Very high friction and very low restitution for stability
+    domino->SetPhysics(0.5, 0.95, 0.05);
+
     machine->AddComponent(domino);
 
     if (world) {
@@ -475,7 +471,10 @@ std::shared_ptr<Shape> Machine1Factory::BowlingPin(std::shared_ptr<Machine> mach
     pin->SetImage(mImagesDir + L"/pin.png");
     pin->SetInitialPosition(x, y);
     pin->SetDynamic();
-    pin->SetPhysics(0.5, 0.5, 1.0);
+
+    // CRITICAL: Very high friction and very low restitution for stability
+    pin->SetPhysics(0.5, 0.95, 0.05);
+
     machine->AddComponent(pin);
 
     if (world) {
