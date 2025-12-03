@@ -47,7 +47,7 @@ private:
      * @param machineNum Index of the machine to fetch.
      * @return Shared pointer to the machine instance.
      */
-    std::shared_ptr<Machine> GetOrCreateMachine(int machineNum);
+    std::shared_ptr<Machine> GetCreateMachine(int machineNum);
 
 public:
     /**

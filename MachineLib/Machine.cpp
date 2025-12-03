@@ -12,6 +12,11 @@
 #include "Pulley.h"
 #include <b2_world.h>
 
+#include "Conveyor.h"
+#include "Elevator.h"
+#include "Motor.h"
+#include "Shape.h"
+
 /**
  * Constructor
  */
@@ -100,3 +105,55 @@ void Machine::Update(double simTime)
         }
     }
 }
+
+/**
+ * Reset the machine to initial state
+ */
+void Machine::Reset()
+{
+    // Create new world
+    b2Vec2 gravityVector(0.0f, -9.8f);
+    mWorld = std::make_shared<b2World>(gravityVector);
+
+    // Create new contact listener
+    mContactListener = std::make_shared<ContactListener>();
+    mWorld->SetContactListener(mContactListener.get());
+
+    // Reinstall all components into physics system
+    for (auto& comp : mComponents)
+    {
+        if (comp)
+        {
+            // Check if component has a polygon (Shape, Motor, Conveyor, Elevator)
+            auto shape = dynamic_cast<Shape*>(comp.get());
+            if (shape && shape->GetPolygon())
+            {
+                shape->GetPolygon()->InstallPhysics(mWorld);
+                shape->SetBody(shape->GetPolygon()->GetBody());
+            }
+
+            auto motor = dynamic_cast<Motor*>(comp.get());
+            if (motor && motor->GetBox())
+            {
+                motor->GetBox()->InstallPhysics(mWorld);
+                motor->SetBody(motor->GetBox()->GetBody());
+                mContactListener->Add(motor->GetBody(), motor);
+            }
+
+            auto conveyor = dynamic_cast<Conveyor*>(comp.get());
+            if (conveyor && conveyor->GetPolygon())
+            {
+                conveyor->GetPolygon()->InstallPhysics(mWorld);
+                conveyor->SetBody(conveyor->GetPolygon()->GetBody());
+            }
+
+            auto elevator = dynamic_cast<Elevator*>(comp.get());
+            if (elevator && elevator->GetPolygon())
+            {
+                elevator->GetPolygon()->InstallPhysics(mWorld);
+                elevator->SetBody(elevator->GetPolygon()->GetBody());
+            }
+        }
+    }
+}
+

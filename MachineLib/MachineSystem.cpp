@@ -37,7 +37,7 @@ MachineSystem::MachineSystem(std::wstring resourcesDir) : mResourcesDir(resource
  * @param machineNum Index of the machine to get or create.
  * @return Shared pointer to the Machine instance.
  */
-std::shared_ptr<Machine> MachineSystem::GetOrCreateMachine(int machineNum)
+std::shared_ptr<Machine> MachineSystem::GetCreateMachine(int machineNum)
 {
     // Make sure our vector can hold the requested index.
     if (mMachines.size() <= static_cast<size_t>(machineNum))
@@ -70,6 +70,9 @@ std::shared_ptr<Machine> MachineSystem::GetOrCreateMachine(int machineNum)
         // Set frame rate for the machine
         machine->SetFrameRate(mFrameRate);
 
+        // CRITICAL: Reset the machine to install physics
+        machine->Reset();
+
         // Store the constructed machine for future requests.
         mMachines[machineNum] = machine;
     }
@@ -83,7 +86,7 @@ std::shared_ptr<Machine> MachineSystem::GetOrCreateMachine(int machineNum)
  */
 void MachineSystem::SetLocation(wxPoint location)
 {
-    auto machine = GetOrCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(gCurrentMachineNum);
     if (machine != nullptr)
     {
         machine->SetLocation(location);
@@ -96,7 +99,7 @@ void MachineSystem::SetLocation(wxPoint location)
  */
 wxPoint MachineSystem::GetLocation()
 {
-    auto machine = GetOrCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(gCurrentMachineNum);
     if (machine != nullptr)
     {
         return machine->GetLocation();
@@ -110,7 +113,7 @@ wxPoint MachineSystem::GetLocation()
  */
 void MachineSystem::DrawMachine(std::shared_ptr<wxGraphicsContext> graphics)
 {
-    auto machine = GetOrCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(gCurrentMachineNum);
     if (machine != nullptr)
     {
         machine->Draw(graphics);
@@ -123,11 +126,23 @@ void MachineSystem::DrawMachine(std::shared_ptr<wxGraphicsContext> graphics)
  */
 void MachineSystem::SetMachineFrame(int frame)
 {
-    mCurrentFrame = frame;
-    auto machine = GetOrCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(gCurrentMachineNum);
     if (machine != nullptr)
     {
-        machine->SetFrame(frame);
+        // If going backwards, reset and step forward from 0
+        if (frame < mCurrentFrame)
+        {
+            machine->Reset();
+            mCurrentFrame = 0;
+        }
+
+        // Step forward to the target frame
+        for (; mCurrentFrame < frame; mCurrentFrame++)
+        {
+            machine->Update(1.0 / mFrameRate);
+        }
+
+        mCurrentFrame = frame;
     }
 }
 
@@ -155,7 +170,7 @@ void MachineSystem::SetFrameRate(double rate)
 void MachineSystem::ChooseMachine(int machine)
 {
     gCurrentMachineNum = machine;
-    GetOrCreateMachine(machine);
+    GetCreateMachine(machine);
 }
 
 /**

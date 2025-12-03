@@ -130,6 +130,12 @@ public:
      * @return Contact listener
      */
     std::shared_ptr<ContactListener> GetContactListener() const { return mContactListener; }
+
+
+    /**
+     * Reset the machine to initial state
+     */
+    void Reset();
 };
 
 #endif //CANADIANEXPERIENCE_MACHINE_H
