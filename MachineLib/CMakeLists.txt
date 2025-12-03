@@ -35,6 +35,12 @@ set(SOURCE_FILES
         Conveyor.h
         Elevator.cpp
         Elevator.h
+        Machine1Factory.cpp
+        Machine1Factory.h
+        Machine1Factory.h
+        Machine2Factory.cpp
+        Machine2Factory.h
+        Machine2Factory.h
 
 
 )
