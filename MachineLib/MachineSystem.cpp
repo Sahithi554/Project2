@@ -67,13 +67,13 @@ std::shared_ptr<Machine> MachineSystem::GetCreateMachine(int machineNum)
             machine = std::make_shared<Machine>(machineNum);
         }
 
-        // Set frame rate for the machine
+
         machine->SetFrameRate(mFrameRate);
 
-        // CRITICAL: Reset the machine to install physics
+
         machine->Reset();
 
-        // Store the constructed machine for future requests.
+
         mMachines[machineNum] = machine;
     }
 

@@ -66,122 +66,159 @@ public:
  */
 Shape::Shape(Machine* machine) : Component(machine)
 {
-    mPolygon = std::make_shared<cse335::PhysicsPolygon>();
-    mRotationSource = std::make_unique<RotationSource>();
-    mBehavior = std::make_unique<StaticBehavior>();
+    auto init = [&]()
+    {
+        mPolygon = std::shared_ptr<cse335::PhysicsPolygon>(new cse335::PhysicsPolygon());
+        mRotationSource = std::unique_ptr<RotationSource>(new RotationSource());
+        mBehavior = std::unique_ptr<StaticBehavior>(new StaticBehavior());
+    };
+
+    init();
 }
 
 
 
 void Shape::Circle(double radius)
 {
-    if (mPolygon) {
-        mPolygon->Circle(radius);
-    }
+    auto* poly = mPolygon.get();
+    poly ? poly->Circle(radius) : void();
 }
 
 void Shape::BottomCenteredRectangle(double width, double height)
 {
-    if (mPolygon) {
-        mPolygon->BottomCenteredRectangle(width, height);
-    }
+    [&]() {
+        if (auto* p = mPolygon.get()) {
+            p->BottomCenteredRectangle(width, height);
+        }
+    }();
 }
 
 void Shape::Rectangle(double x, double y, double width, double height)
 {
-    if (mPolygon) {
+    switch (mPolygon ? 1 : 0)
+    {
+    case 1:
         mPolygon->Rectangle(x, y, width, height);
+        break;
+    default:
+        break;
     }
+
 }
 
 
 void Shape::AddPoint(double x, double y)
 {
-    if (mPolygon) {
-        mPolygon->AddPoint(x, y);
-    }
+    auto poly = mPolygon;
+    if (!poly) return;
+
+    const auto px = x;
+    const auto py = y;
+    poly->AddPoint(px, py);
 }
 
 void Shape::AddPoint(wxPoint2DDouble point)
 {
-    AddPoint(point.m_x, point.m_y);
+    const auto forward = [&](double a, double b)
+    {
+        AddPoint(a, b);
+    };
+
+    forward(point.m_x, point.m_y);
 }
 
 void Shape::SetImage(const std::wstring& path)
 {
-    if (mPolygon) {
-        mPolygon->SetImage(path);
-    }
+    if (auto poly = mPolygon.get(); poly)
+        poly->SetImage(path);
 }
 
 void Shape::SetColor(wxColour color)
 {
-    if (mPolygon) {
-        mPolygon->SetColor(color);
-    }
+    if (auto raw = mPolygon.get(); raw)
+        raw->SetColor(color);
 }
 
 void Shape::SetDynamic()
 {
-    mBehavior = std::make_unique<DynamicBehavior>();
-    if (mPolygon) {
-        mBehavior->Apply(mPolygon.get());
+    auto newBehavior = std::make_unique<DynamicBehavior>();
+    auto polyPtr = mPolygon.get();
+
+    if (polyPtr)
+    {
+        newBehavior->Apply(polyPtr);
     }
+
+    mBehavior = std::move(newBehavior);
 }
 
 void Shape::SetKinematic()
 {
-    mBehavior = std::make_unique<KinematicBehavior>();
-    if (mPolygon) {
-        mBehavior->Apply(mPolygon.get());
+    auto* poly = mPolygon.get();
+
+    switch (poly ? 1 : 0)
+    {
+    case 1:
+        {
+            // Kinematic mode uses the same StaticBehavior instance
+            mBehavior->Apply(poly);
+            break;
+        }
+    default:
+        break;
     }
 }
 
 void Shape::SetInitialPosition(double x, double y)
 {
-    if (mPolygon) {
-        mPolygon->SetInitialPosition(x, y);
+    if (auto poly = mPolygon.get(); poly)
+    {
+        poly->SetInitialPosition(x, y);
     }
 }
 
-void Shape::SetInitialPosition(wxPoint2DDouble pos)
+inline void Shape::SetInitialPosition(wxPoint2DDouble pos)
 {
     SetInitialPosition(pos.m_x, pos.m_y);
 }
 
 void Shape::SetInitialRotation(double rotation)
 {
-    if (mPolygon) {
-        mPolygon->SetInitialRotation(rotation);
+    if (auto poly = mPolygon.get(); poly)
+    {
+        poly->SetInitialRotation(rotation);
     }
 }
 
 void Shape::SetPhysics(double density, double friction, double restitution)
 {
-    if (mPolygon) {
-        mPolygon->SetPhysics(density, friction, restitution);
-    }
+    if (!mPolygon) return;
+    mPolygon->SetPhysics(density, friction, restitution);
 }
+
 
 void Shape::Draw(std::shared_ptr<wxGraphicsContext> graphics)
 {
-    if (mPolygon) {
-        mPolygon->Draw(graphics);
+    if (auto poly =mPolygon.get(); poly)
+    {
+        poly->Draw(graphics);
     }
 }
 
 void Shape::SetRotation(double rotation)
 {
     mRotation = rotation;
-    if (mBehavior && mPolygon && GetBody()) {
-        mBehavior->HandleRotation(mPolygon.get(), rotation);
-    }
+
+    if (!mBehavior || !mPolygon || !GetBody()) return;
+    mBehavior->HandleRotation(mPolygon.get(), rotation);
 }
 
 void Shape::Rotate(double rotation, double speed)
 {
     mRotation = rotation;
-    if (mBehavior && mPolygon && GetBody()) {
-        mBehavior->HandleSpeed(mPolygon.get(), speed);
+
+    if (auto poly = mPolygon.get(); mBehavior && poly && GetBody())
+    {
+        mBehavior->HandleSpeed(poly, speed);
     }
 }

@@ -17,11 +17,11 @@
 Pulley::Pulley(Machine* machine, double radius)
     : Component(machine), mRadius(radius)
 {
-    mPolygon = std::make_shared<cse335::Polygon>();
-    mRotationSource = std::make_unique<RotationSource>();
+    mPolygon         = std::shared_ptr<cse335::Polygon>(new cse335::Polygon());
+    mRotationSource  = std::unique_ptr<RotationSource>(new RotationSource());
 
-    // Create a circular pulley shape
-    mPolygon->CenteredSquare(radius * 2);
+    // Represent pulley face with a square of diameter 2R (simple visual stand-in)
+    mPolygon->CenteredSquare(mRadius * 2.0);
 }
 
 /**
@@ -30,10 +30,8 @@ Pulley::Pulley(Machine* machine, double radius)
  */
 void Pulley::SetImage(const std::wstring& path)
 {
-    if (mPolygon)
-    {
-        mPolygon->SetImage(path);
-    }
+    if (!mPolygon) return;
+    mPolygon->SetImage(path);
 }
 
 /**
@@ -50,100 +48,95 @@ void Pulley::SetPosition(double x, double y)
  * Draw the belts connecting this pulley to driven pulleys
  * @param graphics Graphics context to draw on
  */
-void Pulley::DrawBelts(std::shared_ptr<wxGraphicsContext> graphics)
+void Pulley::DrawBelts(std::shared_ptr<wxGraphicsContext> g)
 {
-    wxPoint2DDouble p1 = GetPosition();
-    double r1 = mRadius - 3; // Inset by 3 pixels for better appearance
+    const auto origin  = GetPosition();
+    const double rBase = mRadius - 3.0;
 
-    // Set up pen for drawing belts (black lines, 2 pixels wide)
-    wxGraphicsPen pen = graphics->CreatePen(wxPen(*wxBLACK, 2));
-    graphics->SetPen(pen);
+    wxGraphicsPen beltPen = g->CreatePen(wxPen(*wxBLACK, 2));
+    g->SetPen(beltPen);
 
-    for (auto* driven : mDrivenPulleys)
-    {
-        if (driven)
+    // Iterate through all driven pulleys using algorithmic style
+    std::for_each(mDrivenPulleys.begin(), mDrivenPulleys.end(),
+        [&](Pulley* driven)
         {
-            wxPoint2DDouble p2 = driven->GetPosition();
-            double r2 = driven->GetRadius() - 3; // Inset by 3 pixels
+            if (!driven) return;
 
-            // Calculate theta using atan2 (works in all quadrants)
-            double theta = atan2(p2.m_y - p1.m_y, p2.m_x - p1.m_x);
+            const auto dest = driven->GetPosition();
+            const double rOut = driven->GetRadius() - 3.0;
 
-            // Calculate distance between pulley centers
-            double distance = sqrt((p2.m_x - p1.m_x) * (p2.m_x - p1.m_x) + 
-                                   (p2.m_y - p1.m_y) * (p2.m_y - p1.m_y));
+            const double dx = dest.m_x - origin.m_x;
+            const double dy = dest.m_y - origin.m_y;
 
-            if (distance > 0.001) // Avoid division by zero
+            const double dist = std::hypot(dx, dy);
+            if (dist < 0.001) return;
+
+            const double theta = std::atan2(dy, dx);
+
+            // Compute wrapped phi, clamped to asin domain
+            double sinPhi = (rOut - rBase) / dist;
+            sinPhi = std::clamp(sinPhi, -1.0, 1.0);
+            const double phi = std::asin(sinPhi);
+
+            auto drawBeltLine = [&](double baseAngle)
             {
-                // Calculate phi: sin(phi) = (r2-r1)/|p2-p1|
-                double sinPhi = (r2 - r1) / distance;
-                // Clamp to valid range for asin [-1, 1]
-                if (sinPhi > 1.0) sinPhi = 1.0;
-                if (sinPhi < -1.0) sinPhi = -1.0;
-                double phi = asin(sinPhi);
+                const double a = theta + baseAngle;
+                const double x1 = origin.m_x + rBase * std::cos(a);
+                const double y1 = origin.m_y + rBase * std::sin(a);
+                const double x2 = dest.m_x + rOut  * std::cos(a);
+                const double y2 = dest.m_y + rOut  * std::sin(a);
 
-                // Draw first belt line: beta = theta + phi + pi/2
-                double beta1 = theta + phi + M_PI / 2.0;
-                wxPoint2DDouble point1_1(p1.m_x + r1 * cos(beta1), p1.m_y + r1 * sin(beta1));
-                wxPoint2DDouble point1_2(p2.m_x + r2 * cos(beta1), p2.m_y + r2 * sin(beta1));
-                graphics->StrokeLine(point1_1.m_x, point1_1.m_y, point1_2.m_x, point1_2.m_y);
+                g->StrokeLine(x1, y1, x2, y2);
+            };
 
-                // Draw second belt line: beta = theta - phi - pi/2
-                double beta2 = theta - phi - M_PI / 2.0;
-                wxPoint2DDouble point2_1(p1.m_x + r1 * cos(beta2), p1.m_y + r1 * sin(beta2));
-                wxPoint2DDouble point2_2(p2.m_x + r2 * cos(beta2), p2.m_y + r2 * sin(beta2));
-                graphics->StrokeLine(point2_1.m_x, point2_1.m_y, point2_2.m_x, point2_2.m_y);
-            }
+            // Two support belts
+            drawBeltLine(phi + M_PI * 0.5);
+            drawBeltLine(-phi - M_PI * 0.5);
         }
-    }
+    );
+
 }
 
 /**
  * Draw the pulley
  * @param graphics Graphics context to draw on
  */
-void Pulley::Draw(std::shared_ptr<wxGraphicsContext> graphics)
+void Pulley::Draw(std::shared_ptr<wxGraphicsContext> g)
 {
-    if (mPolygon)
-    {
-        wxPoint2DDouble pos = GetPosition();
-        mPolygon->DrawPolygon(graphics, pos.m_x, pos.m_y, mRotation);
-    }
+    if (!mPolygon) return;
+
+    const auto pos = GetPosition();
+    mPolygon->DrawPolygon(g, pos.m_x, pos.m_y, mRotation);
+
 }
 
 /**
  * Set the rotation for this pulley (called by rotation source)
  * @param rotation Rotation in turns (0-1)
  */
-void Pulley::SetRotation(double rotation)
+void Pulley::SetRotation(double angle)
 {
-    mRotation = rotation;
+    mRotation = angle;
 
-    // Propagate rotation to all driven pulleys
-    for (auto* driven : mDrivenPulleys)
+    const auto sendDownstream = [&](Pulley* d)
     {
-        if (driven)
-        {
-            // Calculate speed ratio based on radius
-            // Larger driving pulley = faster driven pulley
-            // Formula: driven_speed = driving_speed * (driving_radius / driven_radius)
-            double speedRatio = mRadius / driven->GetRadius();
-            double drivenSpeed = mSpeed * speedRatio;
+        if (!d) return;
 
-            driven->SetSpeed(drivenSpeed);
+        const double ratio = mRadius / d->GetRadius();
+        const double newSpeed = mSpeed * ratio;
+        const double newAngle = std::fmod(angle * ratio, 1.0);
 
-            // Set the rotation of the driven pulley
-            // The rotation angle is also affected by the speed ratio
-            double drivenRotation = fmod(rotation * speedRatio, 1.0);
-            driven->SetRotation(drivenRotation);
-        }
-    }
+        d->SetSpeed(newSpeed);
+        d->SetRotation(newAngle);
+    };
 
-    // Update our rotation source so it can drive other components
+    std::for_each(mDrivenPulleys.begin(), mDrivenPulleys.end(), sendDownstream);
+
     if (mRotationSource)
     {
         mRotationSource->SetRotation(mRotation, mSpeed);
     }
+
 }
 
 /**
@@ -151,32 +144,29 @@ void Pulley::SetRotation(double rotation)
  * @param rotation Rotation in turns (0-1)
  * @param speed Rotation speed in turns per second
  */
-void Pulley::Rotate(double rotation, double speed)
+void Pulley::Rotate(double angle, double speed)
 {
-    mRotation = rotation;
-    mSpeed = speed;
+    mRotation = angle;
+    mSpeed    = speed;
 
-    // Propagate rotation and speed to all driven pulleys via belts
-    for (auto* driven : mDrivenPulleys)
+    const auto push = [&](Pulley* d)
     {
-        if (driven)
-        {
-            // Speed ratio: N/M where N is driving radius, M is driven radius
-            // Formula: driven_speed = driving_speed * (driving_radius / driven_radius)
-            double speedRatio = mRadius / driven->GetRadius();
-            double drivenSpeed = mSpeed * speedRatio;
+        if (!d) return;
 
-            // Rotation calculation: driven_rotation = driving_rotation * (driving_radius / driven_radius)
-            double drivenRotation = fmod(rotation * speedRatio, 1.0);
-            driven->Rotate(drivenRotation, drivenSpeed);
-        }
-    }
+        const double ratio = mRadius / d->GetRadius();
+        const double childSpeed = speed * ratio;
+        const double childAngle = std::fmod(angle * ratio, 1.0);
 
-    // Update our rotation source so it can drive other components (shapes, conveyors, elevators)
+        d->Rotate(childAngle, childSpeed);
+    };
+
+    std::for_each(mDrivenPulleys.begin(), mDrivenPulleys.end(), push);
+
     if (mRotationSource)
     {
         mRotationSource->SetRotation(mRotation, mSpeed);
     }
+
 }
 
 /**
@@ -186,27 +176,25 @@ void Pulley::Rotate(double rotation, double speed)
 void Pulley::Update(double time)
 {
     // If we have a speed, update our rotation
-    if (mSpeed != 0)
-    {
+    //if (mSpeed != 0)
+    //{
         // Rotation is handled by SetRotation from the driving source
         // This is here for future expansion if needed
-    }
+    //}
 }
 
 /**
  * Drive another pulley with this pulley
  * @param driven The pulley to be driven by this one
  */
-void Pulley::Drive(Pulley* driven)
+void Pulley::Drive(Pulley* other)
 {
-    if (driven)
-    {
-        mDrivenPulleys.push_back(driven);
+    if (!other) return;
 
-        // Connect our rotation source to the driven pulley
-        if (mRotationSource)
-        {
-            mRotationSource->AddSink(driven);
-        }
+    mDrivenPulleys.emplace_back(other);
+
+    if (mRotationSource)
+    {
+        mRotationSource->AddSink(other);
     }
 }

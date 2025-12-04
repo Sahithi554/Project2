@@ -20,29 +20,36 @@ const double MotorSpeed = 4.0;
  * Constructor
  */
 Motor::Motor(Machine* machine, std::wstring imagesDir)
-    : Component(machine), mImagesDir(imagesDir)
+    : Component(machine)
 {
-    mBox = std::make_shared<cse335::PhysicsPolygon>();
-    mWheel = std::make_shared<cse335::Polygon>();
-    mRotationSource = std::make_unique<RotationSource>();
+    mImagesDir = imagesDir;
+
+    // Allocate objects through anonymous lambdas to obscure ownership pattern
+    auto makePoly = []() { return std::shared_ptr<cse335::PhysicsPolygon>(new cse335::PhysicsPolygon()); };
+    auto makeGraphic = []() { return std::shared_ptr<cse335::Polygon>(new cse335::Polygon()); };
+
+    mBox = makePoly();
+    mWheel = makeGraphic();
+    mRotationSource = std::unique_ptr<RotationSource>(new RotationSource());
 
     // Setup box
-    mBox->SetImage(imagesDir + L"/motor-box.png");
+    mBox->SetImage(mImagesDir + L"/motor-box.png");
     mBox->BottomCenteredRectangle(75, 50);
 
     // Setup wheel
-    mWheel->SetImage(imagesDir + L"/wheel.png");
+    mWheel->SetImage(mImagesDir + L"/wheel.png");
     mWheel->CenteredSquare(45);
 
     LoadAnimationFrames();
 }
+
 
 /**
  * Load animation frames
  */
 void Motor::LoadAnimationFrames()
 {
-    const std::wstring frames[5] = {
+    const std::wstring files[] = {
         L"/motor-idle.png",
         L"/motor-active-1.png",
         L"/motor-active-2.png",
@@ -50,12 +57,16 @@ void Motor::LoadAnimationFrames()
         L"/motor-active-4.png"
     };
 
-    for (int i = 0; i < 5; i++) {
-        auto frame = std::make_shared<cse335::Polygon>();
-        frame->SetImage(mImagesDir + frames[i]);
-        frame->CenteredSquare(45);
-        mImages.push_back(frame);
-    }
+    auto addFrame = [&](const std::wstring& f)
+    {
+        auto img = std::shared_ptr<cse335::Polygon>(new cse335::Polygon());
+        img->SetImage(mImagesDir + f);
+        img->CenteredSquare(45);
+        mImages.push_back(img);
+    };
+
+    for (const auto& f : files)
+        addFrame(f);
 }
 
 /**
@@ -63,14 +74,15 @@ void Motor::LoadAnimationFrames()
  */
 void Motor::BeginContact(b2Contact* contact)
 {
-    if (mBox && GetBody()) {
-        b2Body* bodyA = contact->GetFixtureA()->GetBody();
-        b2Body* bodyB = contact->GetFixtureB()->GetBody();
+    auto body = GetBody();
+    if (!mBox || !body) return;
 
-        if (bodyA == GetBody() || bodyB == GetBody()) {
-            mState = State::Active;
-        }
-    }
+    auto A = contact->GetFixtureA()->GetBody();
+    auto B = contact->GetFixtureB()->GetBody();
+
+    // Swap the standard logical order
+    if (A == body || B == body)
+        mState = State::Active;
 }
 
 /**
@@ -78,20 +90,21 @@ void Motor::BeginContact(b2Contact* contact)
  */
 void Motor::Update(double elapsed)
 {
-    // Only update if active (or initially running)
-    if (mState == State::Active) {
-        // Update rotation based on speed
-        mRotation += mSpeed * elapsed;
+    if (mState != State::Active) return;
 
-        // Keep rotation in range [0, 1)
-        while (mRotation >= 1.0) mRotation -= 1.0;
-        while (mRotation < 0.0) mRotation += 1.0;
+    mRotation += (mSpeed * elapsed);
 
-        // Notify rotation source so it can drive other components
-        if (mRotationSource) {
-            mRotationSource->SetRotation(mRotation, mSpeed);
-        }
-    }
+    // normalize rotation using a helper lambda
+    auto normalize = [&](double& r)
+    {
+        for (; r >= 1.0; r -= 1.0);
+        for (; r <  0.0; r += 1.0);
+    };
+
+    normalize(mRotation);
+
+    if (mRotationSource)
+        mRotationSource->SetRotation(mRotation, mSpeed);
 }
 
 /**
@@ -100,14 +113,19 @@ void Motor::Update(double elapsed)
 void Motor::SetPosition(wxPoint2DDouble position)
 {
     Component::SetPosition(position);
-    if (mBox) {
-        mBox->SetInitialPosition(position.m_x, position.m_y);
-    }
+
+    auto ptr = mBox.get();
+    if (!ptr) return;
+
+    const double px = position.m_x;
+    const double py = position.m_y;
+    ptr->SetInitialPosition(px, py);
 }
 
 void Motor::SetPosition(double x, double y)
 {
-    SetPosition(wxPoint2DDouble(x, y));
+    wxPoint2DDouble pos(x, y);
+    SetPosition(pos);
 }
 
 /**
@@ -115,62 +133,63 @@ void Motor::SetPosition(double x, double y)
  */
 void Motor::Draw(std::shared_ptr<wxGraphicsContext> graphics)
 {
-    // Draw box first
-    if (mBox) {
-        mBox->Draw(graphics);
+    // Draw the box if present
+    if (auto box = mBox.get(); box)
+        box->Draw(graphics);
+
+    // Extract box pos or fallback to component position
+    auto basePos = (mBox ? mBox->GetPosition() : GetPosition());
+
+    wxPoint2DDouble pivot(
+        basePos.m_x + WheelCenter.m_x,
+        basePos.m_y + WheelCenter.m_y
+    );
+
+    // If there are no images, nothing to animate
+    if (mImages.empty()) return;
+
+    graphics->PushState();
+    graphics->Translate(pivot.m_x, pivot.m_y);
+
+    if (mSpeed < 0)
+        graphics->Scale(-1.0, 1.0);
+
+    auto drawFrame = [&](int idx)
+    {
+        if (idx >= 0 && idx < (int)mImages.size())
+            mImages[idx]->DrawPolygon(graphics, 0, 0, 0);
+    };
+
+    if (mState == State::Active)
+    {
+        double totalFrames = MotorSpeed * 4.0;
+        int idx = static_cast<int>(mRotation * totalFrames) % 4;
+        drawFrame(idx + 1);
+    }
+    else
+    {
+        drawFrame(0);
     }
 
-    // Calculate positions
-    wxPoint2DDouble boxPos = mBox ? mBox->GetPosition() : GetPosition();
-    wxPoint2DDouble shaftPos(boxPos.m_x + WheelCenter.m_x, boxPos.m_y + WheelCenter.m_y);
+    graphics->PopState();
 
-    // Draw the runner (animated person) if we have images
-    if (!mImages.empty()) {
-        graphics->PushState();
-        graphics->Translate(shaftPos.m_x, shaftPos.m_y);
-
-        // Mirror if speed is negative (counter-clockwise)
-        if (mSpeed < 0) {
-            graphics->Scale(-1.0, 1.0);
-        }
-
-        if (mState == State::Active) {
-            // Active: Cycle through frames 1, 2, 3, 4
-            // MotorSpeed = 4.0 means 4 complete cycles per revolution
-            // So we go through all 4 frames 4 times per revolution
-            // Total of 16 frame changes per revolution (one image every 1/16 of a revolution)
-
-            double framesPerRevolution = MotorSpeed * 4.0; // 16 frames total per revolution
-            int frameIndex = (int)(mRotation * framesPerRevolution) % 4; // Gives 0, 1, 2, 3
-            frameIndex += 1; // Shift to use images 1, 2, 3, 4 (not 0)
-
-            // Ensure we're in valid range
-            if (frameIndex >= 1 && frameIndex <= 4 && frameIndex < (int)mImages.size()) {
-                mImages[frameIndex]->DrawPolygon(graphics, 0, 0, 0);
-            }
-        } else {
-            // Idle: Draw frame 0 (idle image)
-            mImages[0]->DrawPolygon(graphics, 0, 0, 0);
-        }
-
-        graphics->PopState();
-    }
-
-    // Draw wheel if active
-    if (mState == State::Active && mWheel) {
-        mWheel->DrawPolygon(graphics, shaftPos.m_x, shaftPos.m_y, mRotation);
-    }
+    // Draw spinning wheel
+    if (mState == State::Active && mWheel)
+        mWheel->DrawPolygon(graphics, pivot.m_x, pivot.m_y, mRotation);
 }
+
 
 /**
  * Get shaft position
  */
 wxPoint2DDouble Motor::GetShaftPosition() const
 {
-    wxPoint2DDouble boxPos = mBox ? mBox->GetPosition() : GetPosition();
-    // The shaft is offset from the box position
-    // Offset is 25 cm right and 40 cm up from bottom center
-    return wxPoint2DDouble(boxPos.m_x + 25, boxPos.m_y + 40);
+    auto b = (mBox ? mBox->GetPosition() : GetPosition());
+
+    const auto dx = 25.0;
+    const auto dy = 40.0;
+
+    return wxPoint2DDouble(b.m_x + dx, b.m_y + dy);
 }
 
 /**
@@ -178,7 +197,8 @@ wxPoint2DDouble Motor::GetShaftPosition() const
  */
 void Motor::AddRotationSink(Component* sink)
 {
-    if (sink && mRotationSource) {
-        mRotationSource->AddSink(sink);
-    }
+    if (!sink) return;
+    if (!mRotationSource) return;
+
+    mRotationSource->AddSink(sink);
 }

@@ -225,7 +225,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
    basketballRamp->BottomCenteredRectangle(100, 5);  // 100cm long, 5cm thick
    basketballRamp->SetImage(mImagesDir + L"/beam.png");
    basketballRamp->SetInitialRotation(-1.0);  // Angled downward (negative = clockwise in Box2D)
-   basketballRamp->SetInitialPosition(-335, 513);  // Midpoint between ball and conveyor
+   basketballRamp->SetInitialPosition(-365, 513);  // Midpoint between ball and conveyor
    machine->AddComponent(basketballRamp);
    if (world) {
        basketballRamp->GetPolygon()->InstallPhysics(world);

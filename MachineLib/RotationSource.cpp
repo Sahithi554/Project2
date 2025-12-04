@@ -16,12 +16,23 @@
  */
 void RotationSource::SetRotation(double angle)
 {
+    // Record internal state
     mRotation = angle;
-    // Update all registered sinks with the current rotation
-    for (auto sink : mSinks)
-    {
-        sink->SetRotation(angle);
+
+    if (mSinks.empty()) {
+        return;    // Nothing to update, bail early
     }
+
+    // Broadcast using functional style
+    std::for_each(mSinks.begin(), mSinks.end(),
+        [angle](IRotationSink* s)
+        {
+            if (s)
+            {
+                s->SetRotation(angle);
+            }
+        }
+    );
 }
 
 /**
@@ -31,13 +42,24 @@ void RotationSource::SetRotation(double angle)
  */
 void RotationSource::SetRotation(double angle, double speed)
 {
+    // Store new state
     mRotation = angle;
-    mSpeed = speed;
-    // Update all registered sinks with both rotation and speed
-    for (auto sink : mSinks)
-    {
-        sink->Rotate(angle, speed);
+    mSpeed    = speed;
+
+    if (mSinks.empty()) {
+        return;
     }
+
+    // Again, functional broadcasting
+    std::for_each(mSinks.begin(), mSinks.end(),
+        [angle, speed](IRotationSink* s)
+        {
+            if (s)
+            {
+                s->Rotate(angle, speed);
+            }
+        }
+    );
 }
 
 /**
@@ -46,6 +68,14 @@ void RotationSource::SetRotation(double angle, double speed)
  */
 void RotationSource::AddSink(IRotationSink* sink)
 {
-    mSinks.push_back(sink);
-    sink->SetSource(this);  // Link the sink back to this source
+    if (!sink) {
+        return;
+    }
+
+    // Register the sink
+    mSinks.emplace_back(sink);
+
+    // Connect sink → source link
+    sink->SetSource(this);
+
 }
