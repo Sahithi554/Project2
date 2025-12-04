@@ -9,10 +9,7 @@
 #include "PictureObserver.h"
 #include "Actor.h"
 #include "ImageDrawable.h"
-
-
-
-
+#include "MachineDrawable.h"
 
 
 /**
@@ -193,5 +190,3 @@ void Picture::CreateActors()
 
     AddActor(harold);
 }
-
-

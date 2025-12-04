@@ -19,9 +19,6 @@
 #include <b2_world.h>
 #include <b2_body.h>
 
-/// The active machine index used by the system.
-static int gCurrentMachineNum = 1;
-
 /**
  * Construct a MachineSystem.
  * @param resourcesDir Path to the resources folder (images, etc.)
@@ -67,9 +64,7 @@ std::shared_ptr<Machine> MachineSystem::GetCreateMachine(int machineNum)
             machine = std::make_shared<Machine>(machineNum);
         }
 
-
         machine->SetFrameRate(mFrameRate);
-
 
         machine->Reset();
 
@@ -86,7 +81,7 @@ std::shared_ptr<Machine> MachineSystem::GetCreateMachine(int machineNum)
  */
 void MachineSystem::SetLocation(wxPoint location)
 {
-    auto machine = GetCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(mCurrentMachineNum);
     if (machine != nullptr)
     {
         machine->SetLocation(location);
@@ -99,7 +94,7 @@ void MachineSystem::SetLocation(wxPoint location)
  */
 wxPoint MachineSystem::GetLocation()
 {
-    auto machine = GetCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(mCurrentMachineNum);
     if (machine != nullptr)
     {
         return machine->GetLocation();
@@ -113,7 +108,7 @@ wxPoint MachineSystem::GetLocation()
  */
 void MachineSystem::DrawMachine(std::shared_ptr<wxGraphicsContext> graphics)
 {
-    auto machine = GetCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(mCurrentMachineNum);
     if (machine != nullptr)
     {
         machine->Draw(graphics);
@@ -126,7 +121,7 @@ void MachineSystem::DrawMachine(std::shared_ptr<wxGraphicsContext> graphics)
  */
 void MachineSystem::SetMachineFrame(int frame)
 {
-    auto machine = GetCreateMachine(gCurrentMachineNum);
+    auto machine = GetCreateMachine(mCurrentMachineNum);
     if (machine != nullptr)
     {
         // If going backwards, reset and step forward from 0
@@ -169,7 +164,7 @@ void MachineSystem::SetFrameRate(double rate)
  */
 void MachineSystem::ChooseMachine(int machine)
 {
-    gCurrentMachineNum = machine;
+    mCurrentMachineNum = machine;
     GetCreateMachine(machine);
 }
 
@@ -179,7 +174,7 @@ void MachineSystem::ChooseMachine(int machine)
  */
 int MachineSystem::GetMachineNumber()
 {
-    return gCurrentMachineNum;
+    return mCurrentMachineNum;
 }
 
 /**

@@ -21,6 +21,10 @@ set(SOURCE_FILES
         AnimChannel.cpp AnimChannel.h
         AnimChannelAngle.cpp AnimChannelAngle.h
         AnimChannelPoint.cpp AnimChannelPoint.h
+        MachineDrawable.cpp
+        MachineDrawable.h
+        MachineDrawable.h
+        MachineDrawable.cpp
 )
 
 find_package(wxWidgets COMPONENTS core base xrc html xml REQUIRED)

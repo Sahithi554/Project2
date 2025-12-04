@@ -87,11 +87,18 @@ std::shared_ptr<Actor> HaroldFactory::Create(std::wstring imagesDir)
     rhand->AddPoint(wxPoint(11, -2));
     rarm->AddChild(rhand);
 
+    // Add the hammer prop to Harold's right hand (Part 1a prop)
+    auto hammer = std::make_shared<ImageDrawable>(L"Hammer", imagesDir + L"/hammer.png");
+    hammer->SetCenter(wxPoint(32, 16));  // Center point for rotation
+    hammer->SetPosition(wxPoint(0, 20)); // Position relative to hand
+    rhand->AddChild(hammer);
+
 
     actor->AddDrawable(larm);
     actor->AddDrawable(rarm);
     actor->AddDrawable(rhand);
     actor->AddDrawable(lhand);
+    actor->AddDrawable(hammer);  // Add hammer to drawables list
     actor->AddDrawable(rleg);
     actor->AddDrawable(lleg);
     actor->AddDrawable(shirt);

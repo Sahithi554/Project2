@@ -35,6 +35,9 @@ private:
     /// Current frame counter (used to compute elapsed time).
     int mCurrentFrame = 0;
 
+    /// The currently selected machine number for THIS instance (not global!)
+    int mCurrentMachineNum = 1;
+
     /// Collection of machines indexed by machine number.
     std::vector<std::shared_ptr<Machine>> mMachines;
 
