@@ -67,7 +67,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    basketball->SetImage(mImagesDir + L"/basketball.png");
    basketball->SetInitialPosition(-340, 530);
    basketball->SetDynamic();
-   basketball->SetPhysics(1, 0.5, 0.5);
+   basketball->SetPhysics(1, 0.5, 0.8);
    machine->AddComponent(basketball);
    if (world) {
        basketball->GetPolygon()->InstallPhysics(world);
@@ -81,7 +81,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    bowlingball->SetImage(mImagesDir + L"/bowlingball.png");
    bowlingball->SetInitialPosition(-420, 80);
    bowlingball->SetDynamic();
-   bowlingball->SetPhysics(5, 0.5, 0.6);
+   bowlingball->SetPhysics(5, 0.5, 0.4);
    machine->AddComponent(bowlingball);
    if (world) {
        bowlingball->GetPolygon()->InstallPhysics(world);
@@ -112,6 +112,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    platform1->Rectangle(-150, 0, 300, FloorHeight);
    platform1->SetImage(mImagesDir + L"/floor.png");
    platform1->SetInitialPosition(210, 250);
+    platform1->SetPhysics(1.0, 0.5, 0.5);
    machine->AddComponent(platform1);
    if (world) {
        platform1->GetPolygon()->InstallPhysics(world);
@@ -127,6 +128,7 @@ std::shared_ptr<Machine> Machine1Factory::Create(int num)
    platform2->Rectangle(-150, 0, 300, FloorHeight);
    platform2->SetImage(mImagesDir + L"/floor.png");
    platform2->SetInitialPosition(265, 100);
+    platform2->SetPhysics(1.0, 0.5, 0.5);
    machine->AddComponent(platform2);
    if (world) {
        platform2->GetPolygon()->InstallPhysics(world);
@@ -180,7 +182,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
    if (world) {
        conveyorEC->GetPolygon()->InstallPhysics(world);
        conveyorEC->SetBody(conveyorEC->GetPolygon()->GetBody());
-       // ✅ ONLY CHANGE: Added ContactListener registration
+
        if (contactListener) {
            contactListener->Add(conveyorEC->GetBody(), conveyorEC.get());
        }
@@ -197,7 +199,7 @@ void Machine1Factory::ElevatorAndConveyor(std::shared_ptr<Machine> machine)
    if (world) {
        elevator1EC->GetPolygon()->InstallPhysics(world);
        elevator1EC->SetBody(elevator1EC->GetPolygon()->GetBody());
-       // ✅ ONLY CHANGE: Added ContactListener registration
+
        if (contactListener) {
            contactListener->Add(elevator1EC->GetBody(), elevator1EC.get());
        }
@@ -512,7 +514,7 @@ std::shared_ptr<Shape> Machine1Factory::Domino(std::shared_ptr<Machine> machine,
    domino->SetInitialPosition(x, y);
    domino->SetInitialRotation(rotation);
    domino->SetDynamic();
-   domino->SetPhysics(0.5, 0.95, 0.05);
+   domino->SetPhysics(0.5, 0.95, 0.3);
 
 
    machine->AddComponent(domino);
@@ -547,7 +549,7 @@ std::shared_ptr<Shape> Machine1Factory::BowlingPin(std::shared_ptr<Machine> mach
    pin->SetImage(mImagesDir + L"/pin.png");
    pin->SetInitialPosition(x, y);
    pin->SetDynamic();
-   pin->SetPhysics(0.5, 0.95, 0.05);
+   pin->SetPhysics(0.5, 0.95, 0.5);
 
 
    machine->AddComponent(pin);

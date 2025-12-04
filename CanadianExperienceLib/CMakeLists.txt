@@ -20,7 +20,8 @@ set(SOURCE_FILES
         TimelineDlg.cpp TimelineDlg.h
         AnimChannel.cpp AnimChannel.h
         AnimChannelAngle.cpp AnimChannelAngle.h
-        AnimChannelPoint.cpp AnimChannelPoint.h)
+        AnimChannelPoint.cpp AnimChannelPoint.h
+)
 
 find_package(wxWidgets COMPONENTS core base xrc html xml REQUIRED)
 include(${wxWidgets_USE_FILE})

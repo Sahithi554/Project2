@@ -154,19 +154,15 @@ void Shape::SetDynamic()
 
 void Shape::SetKinematic()
 {
-    auto* poly = mPolygon.get();
+    auto newBehavior = std::make_unique<KinematicBehavior>();
+    auto polyPtr = mPolygon.get();
 
-    switch (poly ? 1 : 0)
+    if (polyPtr)
     {
-    case 1:
-        {
-            // Kinematic mode uses the same StaticBehavior instance
-            mBehavior->Apply(poly);
-            break;
-        }
-    default:
-        break;
+        newBehavior->Apply(polyPtr);
     }
+
+    mBehavior = std::move(newBehavior);
 }
 
 void Shape::SetInitialPosition(double x, double y)
